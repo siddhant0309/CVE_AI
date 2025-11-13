@@ -1,0 +1,768 @@
+================================================================================
+                    MULTI-AGENT CVE ANALYSIS SYSTEM
+                        COMPLETE PROJECT DOCUMENTATION
+================================================================================
+
+PROJECT OVERVIEW
+================================================================================
+This project implements a Multi-Agent CVE (Common Vulnerabilities and Exposures)
+Intelligence System inspired by the ChatDev research paper. The system uses three
+specialized AI agents working together to analyze security vulnerabilities:
+
+1. CVE Retrieval Agent - Finds CVEs matching user's tech stack
+2. Risk Assessment Agent - Prioritizes CVEs by risk score
+3. Remediation Agent - Provides step-by-step fix instructions
+
+The system uses vector embeddings for semantic search and stores CVE data in a
+vector database (ChromaDB). It features a conversational Streamlit UI where
+agents run on-demand based on user queries.
+
+================================================================================
+PROJECT ARCHITECTURE
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           STREAMLIT UI                                   │
+│                      (streamlit_app.py)                                  │
+│  ┌─────────────────────────────────────────────────────────────────┐    │
+│  │  Intent Detection & Planner Agent                              │    │
+│  │  - Detects user intent (CVE retrieval, risk, remediation)      │    │
+│  │  - Plans which agents to run                                    │    │
+│  │  - Handles vague queries                                        │    │
+│  └─────────────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                    ┌───────────────┼───────────────┐
+                    ▼               ▼               ▼
+        ┌──────────────────┐ ┌─────────────┐ ┌──────────────┐
+        │  AGENT 1         │ │  AGENT 2    │ │  AGENT 3     │
+        │  CVE Retrieval   │ │  Risk       │ │  Remediation │
+        │  Specialist      │ │  Assessment │ │  Advisor     │
+        └──────────────────┘ └─────────────┘ └──────────────┘
+                    │               │               │
+                    ▼               ▼               ▼
+        ┌──────────────────┐ ┌─────────────┐ ┌──────────────┐
+        │  Vector Database │ │  CVE Data   │ │  LLM        │
+        │  (ChromaDB)      │ │  (JSON)     │ │  (OpenAI)    │
+        │  + Embeddings    │ │             │ │             │
+        └──────────────────┘ └─────────────┘ └──────────────┘
+
+DATA FLOW:
+1. User queries Streamlit UI
+2. Intent Detection determines what user wants
+3. Planner Agent decides which agents to run
+4. Agents process query and return results
+5. Results displayed in chat interface
+
+================================================================================
+FILE STRUCTURE AND COMPONENTS
+================================================================================
+
+ROOT DIRECTORY:
+├── streamlit_app.py                 (Main UI - conversational interface)
+├── agent1_cve_retrieval.py          (Agent 1: CVE retrieval specialist)
+├── agent2_risk_assessment.py         (Agent 2: Risk assessment analyst)
+├── agent3_remediation.py            (Agent 3: Remediation advisor)
+├── multi_agent_system.py             (Orchestrator - chains all agents)
+├── generate_sample_cves.py          (Generates 50 synthetic CVE records)
+├── create_embeddings.py              (Creates vector embeddings for CVEs)
+├── fetch_cves.py                     (Original: Fetches CVEs from GitHub)
+├── fetch_cves_direct.py              (Alternative: Direct GitHub fetch)
+├── test_agent1.py                    (Test script for Agent 1)
+├── requirements.txt                  (Base dependencies)
+├── requirements_agents.txt           (Agent-specific dependencies)
+├── .env                              (Environment variables - OPENAI_API_KEY)
+├── data/
+│   └── cves_2025.json                (50 CVE records in JSON format)
+├── chroma_db/                        (Vector database storage)
+│   ├── chroma.sqlite3                (ChromaDB SQLite database)
+│   └── [vector index files]          (Vector embeddings)
+└── README files (.md)                 (Documentation)
+
+================================================================================
+DETAILED COMPONENT BREAKDOWN
+================================================================================
+
+1. STREAMLIT UI (streamlit_app.py)
+─────────────────────────────────────────────────────────────────────────────
+Purpose: Main conversational interface where users interact with the system
+
+Key Features:
+- Conversational chat interface (not automatic agent chaining)
+- Intent detection using LLM
+- Planner agent that determines which agents to run
+- Technology extraction from user queries
+- Vague query detection and clarification
+- CVE ID extraction and direct search
+- Session state management (stores CVEs, prioritized lists)
+- Context-aware responses (remembers previous queries)
+
+Key Functions:
+- detect_intent(): Uses LLM to determine user intent
+- planner_agent(): Plans which agents to run based on intent and context
+- extract_technology(): Extracts tech keywords from queries
+- extract_cve_id(): Extracts CVE IDs from queries (e.g., "CVE-2025-0001")
+- is_vague_query(): Detects vague queries and requests clarification
+- search_cve_by_id(): Direct CVE search by ID
+- cves_match_technology(): Checks if stored CVEs match queried technology
+
+Agent Execution Flow:
+1. User sends message
+2. Intent detected (cve_retrieval, risk_assessment, remediation)
+3. Planner decides which agents to run
+4. Agents execute in order
+5. Results displayed in chat
+
+Session State Variables:
+- messages: Chat history
+- last_cves: CVEs from Agent 1
+- last_prioritized: Prioritized CVEs from Agent 2
+- agents_initialized: Flag for agent initialization
+
+
+2. AGENT 1: CVE RETRIEVAL SPECIALIST (agent1_cve_retrieval.py)
+─────────────────────────────────────────────────────────────────────────────
+Purpose: Finds CVEs matching user's tech stack using vector embeddings
+
+Input: User's tech stack (natural language)
+Output: List of relevant CVEs with similarity scores
+
+Key Components:
+- Sentence Transformers Model: "all-MiniLM-L6-v2" for embeddings
+- ChromaDB: Vector database for semantic search
+- OpenAI LLM (optional): For tech stack extraction
+
+Key Methods:
+- extract_tech_stack(): Uses LLM to extract tech stack from user input
+- extract_tech_keywords(): Parses technology names (Python, Node.js, etc.)
+- search_cves(): Performs vector similarity search
+  - Creates embedding for user query
+  - Searches vector database
+  - Filters results to match specific technologies (strict_filter)
+  - Returns top K CVEs with similarity scores
+- process(): Main method that orchestrates CVE retrieval
+
+Technology Recognition:
+Recognizes 30+ technologies including:
+Python, Node.js, React, PostgreSQL, MongoDB, Redis, Docker, Kubernetes,
+Nginx, Apache, TensorFlow, PyTorch, Java, Spring Boot, PHP, WordPress,
+Ruby, Rails, Go, Rust, JavaScript, TypeScript, Angular, Vue.js, Express,
+Django, Flask, Elasticsearch, Kafka, Cassandra, Grafana, MySQL, Airflow
+
+How It Works:
+1. User provides tech stack
+2. System extracts technology keywords
+3. Creates embedding for query
+4. Searches vector database using cosine similarity
+5. Filters results to match specific technologies
+6. Returns top matching CVEs
+
+
+3. AGENT 2: RISK ASSESSMENT ANALYST (agent2_risk_assessment.py)
+─────────────────────────────────────────────────────────────────────────────
+Purpose: Prioritizes CVEs by calculating composite risk scores
+
+Input: List of CVEs from Agent 1
+Output: Prioritized CVE list ranked by risk score
+
+Risk Score Calculation (Composite):
+- CVSS v3 Score (0-10): 40% weight
+- EPSS Score (0-1): 30% weight (Exploit Prediction Scoring System)
+- KEV Flag (boolean): 20% weight (Known Exploited Vulnerabilities)
+- Severity Multiplier: 10% weight
+  * CRITICAL: +0.1
+  * HIGH: +0.075
+  * MEDIUM: +0.05
+  * LOW: +0.025
+
+Risk Score Formula:
+risk_score = (CVSS_v3 / 10) * 0.4 + EPSS * 0.3 + KEV * 0.2 + Severity * 0.1
+
+Key Methods:
+- calculate_risk_score(): Calculates composite risk score for a CVE
+- prioritize_cves(): Ranks CVEs by risk score
+- process(): Main method that takes CVE list and returns prioritized list
+
+Output Format:
+Each CVE includes:
+- Original CVE data
+- Risk score (0.0 - 1.0)
+- Priority level (CRITICAL, HIGH, MEDIUM, LOW)
+- Rank (1, 2, 3, ...)
+
+
+4. AGENT 3: REMEDIATION ADVISOR (agent3_remediation.py)
+─────────────────────────────────────────────────────────────────────────────
+Purpose: Generates step-by-step remediation instructions for CVEs
+
+Input: Single CVE (typically top priority from Agent 2)
+Output: Step-by-step remediation guide
+
+Key Methods:
+- generate_remediation_steps(): Uses LLM to generate fix instructions
+- _parse_steps(): Parses LLM response into numbered steps
+- _fallback_steps(): Template-based steps if LLM unavailable
+- process(): Main method that takes CVE and returns remediation steps
+
+LLM Prompt:
+Provides CVE context (ID, description, severity, technologies, solution)
+and asks for 5-7 specific remediation steps including:
+1. Immediate actions (if any)
+2. Update/upgrade instructions
+3. Configuration changes
+4. Verification steps
+5. Best practices
+
+Fallback Mode:
+If LLM unavailable, provides template-based remediation steps
+
+
+5. DATA GENERATION (generate_sample_cves.py)
+─────────────────────────────────────────────────────────────────────────────
+Purpose: Generates 50 synthetic CVE records for testing/demo
+
+Why Synthetic Data:
+- GitHub API rate limits prevented fetching real 2025 CVEs
+- Limited 2025 CVE data availability
+- Synthetic data mimics real CVE structure
+
+CVE Structure Generated:
+{
+  "cve_id": "CVE-2025-XXXX",
+  "description": "Vulnerability description",
+  "cvss_v3_score": 0.0-10.0,
+  "cvss_v2_score": 0.0-10.0,
+  "severity": "CRITICAL|HIGH|MEDIUM|LOW",
+  "technologies": ["Tech1", "Tech2", ...],
+  "affected_products": ["Vendor/Product"],
+  "solution": "Remediation instructions",
+  "references": [{"url": "...", "name": "..."}],
+  "kev_flag": true/false,
+  "epss_score": 0.0-1.0,
+  "vulnerability_type": "SQL injection|XSS|RCE|..."
+}
+
+Technologies Included:
+30+ technologies randomly assigned to CVEs
+
+Vulnerability Types:
+SQL injection, XSS, RCE, Path traversal, Authentication bypass,
+Privilege escalation, DoS, Information disclosure, CSRF, XXE, SSRF
+
+
+6. VECTOR EMBEDDINGS (create_embeddings.py)
+─────────────────────────────────────────────────────────────────────────────
+Purpose: Creates vector embeddings for CVEs and stores in ChromaDB
+
+Process:
+1. Loads CVEs from data/cves_2025.json
+2. Prepares text for embedding (combines CVE ID, description, technologies,
+   severity, CVSS scores, solution)
+3. Generates embeddings using Sentence Transformers
+4. Stores in ChromaDB with metadata
+
+Embedding Model: sentence-transformers/all-MiniLM-L6-v2
+- 384-dimensional vectors
+- Fast, efficient, good for semantic search
+
+ChromaDB Storage:
+- Collection: "cve_embeddings"
+- ID: CVE ID (e.g., "CVE-2025-0001")
+- Document: Combined text representation
+- Metadata: Structured CVE data (ID, description, CVSS, severity, etc.)
+- Embedding: 384-dim vector representation
+
+Metadata Stored:
+- cve_id, description, cvss_v3_score, cvss_v2_score, severity
+- technologies (comma-separated), affected_products (comma-separated)
+- has_solution, kev_flag, epss_score
+
+
+7. MULTI-AGENT ORCHESTRATOR (multi_agent_system.py)
+─────────────────────────────────────────────────────────────────────────────
+Purpose: Chains all three agents together (command-line version)
+
+Use Case: Non-UI execution of the full agent chain
+
+Process:
+1. Initializes all three agents
+2. Takes user input (tech stack)
+3. Runs Agent 1 → Gets CVEs
+4. Runs Agent 2 → Prioritizes CVEs
+5. Runs Agent 3 → Generates fixes for top CVE
+6. Displays complete results
+
+Difference from Streamlit:
+- Automatic agent chaining (no conversational flow)
+- Command-line interface
+- Single-pass execution
+
+
+8. TEST SCRIPTS
+─────────────────────────────────────────────────────────────────────────────
+test_agent1.py: Tests Agent 1 CVE retrieval functionality
+
+
+9. DATA FILES
+─────────────────────────────────────────────────────────────────────────────
+data/cves_2025.json:
+- 50 CVE records
+- Complete CVE structure with all fields
+- Used by Agent 2 for full CVE data lookup
+- Used by create_embeddings.py to generate vectors
+
+chroma_db/:
+- ChromaDB persistent storage
+- Contains SQLite database and vector index files
+- Generated by create_embeddings.py
+
+
+10. DOCUMENTATION FILES
+─────────────────────────────────────────────────────────────────────────────
+README.md: Base project setup and vector database info
+README_AGENTS.md: Multi-agent system architecture and usage
+README_AGENT1.md: Agent 1 specific documentation
+README_STREAMLIT.md: Streamlit UI documentation
+DEMO_INPUTS.md: Suggested inputs for demos/presentations
+
+================================================================================
+TECHNOLOGIES USED
+================================================================================
+
+Core Technologies:
+- Python 3.x (Main language)
+- Streamlit (Web UI framework)
+- ChromaDB 0.4.22 (Vector database)
+- Sentence Transformers 2.2.2 (Embedding model)
+- OpenAI API (GPT-3.5-turbo for LLM tasks)
+- NumPy 1.24.3 (Numerical operations)
+- PyTorch >= 2.0.0 (Embedding model backend)
+
+AI/ML Components:
+- sentence-transformers/all-MiniLM-L6-v2 (384-dim embeddings)
+- OpenAI GPT-3.5-turbo (Intent detection, tech extraction, remediation)
+
+Data Storage:
+- JSON files (CVE data)
+- ChromaDB (Vector embeddings)
+- SQLite (ChromaDB backend)
+
+Environment:
+- .env file for API keys
+- python-dotenv for environment variable management
+
+================================================================================
+KEY FEATURES AND CAPABILITIES
+================================================================================
+
+1. CONVERSATIONAL INTERFACE
+   - Natural language queries
+   - Follow-up questions
+   - Context awareness (remembers previous CVEs)
+   - No hard-coded inputs
+
+2. INTELLIGENT AGENT PLANNING
+   - Detects user intent automatically
+   - Plans which agents to run
+   - Handles technology matching
+   - Detects vague queries and asks for clarification
+
+3. VECTOR-BASED SEMANTIC SEARCH
+   - Finds CVEs using similarity search
+   - Technology-specific filtering
+   - Handles synonyms and related terms
+
+4. RISK PRIORITIZATION
+   - Composite risk scoring
+   - Considers CVSS, EPSS, KEV flags
+   - Ranks by priority
+
+5. DETAILED REMEDIATION STEPS
+   - LLM-generated fix instructions
+   - Step-by-step guidance
+   - Technology-specific solutions
+
+6. TECHNOLOGY RECOGNITION
+   - Recognizes 30+ technologies
+   - Handles variations (Node.js, nodejs, Node)
+   - Case-insensitive matching
+
+7. CVE ID SEARCH
+   - Direct CVE ID lookup
+   - Pattern matching (CVE-YYYY-NNNNN)
+   - Fast database queries
+
+8. VAGUE QUERY DETECTION
+   - Detects ambiguous queries
+   - Asks for clarification
+   - Provides helpful options
+
+================================================================================
+SYSTEM WORKFLOW EXAMPLES
+================================================================================
+
+EXAMPLE 1: Full Flow (Finding Bugs → Risk → Fixes)
+─────────────────────────────────────────────────────────────────────────────
+User: "I'm using Python 3.9 and experiencing a bug. Can you help find what bug it might be?"
+  → Intent: cve_retrieval
+  → Planner: Run Agent 1
+  → Agent 1: Searches for Python CVEs
+  → Output: List of Python CVEs with details
+
+User: "What are the risk levels of this bug?"
+  → Intent: risk_assessment
+  → Planner: Use stored CVEs, run Agent 2
+  → Agent 2: Prioritizes CVEs by risk score
+  → Output: Prioritized risk list
+
+User: "Can you provide me the fix for this bug?"
+  → Intent: remediation
+  → Planner: Use stored prioritized CVEs, run Agent 3
+  → Agent 3: Generates fix steps for top CVE
+  → Output: Step-by-step remediation guide
+
+
+EXAMPLE 2: Direct CVE ID Query
+─────────────────────────────────────────────────────────────────────────────
+User: "fix for CVE-2025-0001"
+  → Intent: remediation
+  → Planner: Detects CVE ID, searches directly
+  → Found: CVE data retrieved
+  → Agent 3: Generates fixes for specific CVE
+  → Output: Remediation steps for CVE-2025-0001
+
+
+EXAMPLE 3: Vague Query Detection
+─────────────────────────────────────────────────────────────────────────────
+User: "give me fix for python CVE"
+  → Intent: remediation
+  → Vague Query Detected: No specific CVE ID, no matching prioritized CVEs
+  → System: Asks for clarification
+  → Output: "Which Python CVE specifically? Provide CVE ID or ask me to find CVEs first"
+
+
+EXAMPLE 4: Technology Mismatch
+─────────────────────────────────────────────────────────────────────────────
+User: "find Python CVEs" → System finds Python CVEs
+User: "assess risks for Kafka" → Planner detects mismatch, runs Agent 1 first
+  → System: Finds Kafka CVEs first, then assesses risks
+
+
+EXAMPLE 5: No Technology Match
+─────────────────────────────────────────────────────────────────────────────
+User: "find CVEs for MyCustomTech"
+  → Agent 1: Searches but finds no matches
+  → System: "No CVEs found for MyCustomTech. Please try specific technologies."
+
+================================================================================
+ENVIRONMENT SETUP
+================================================================================
+
+Required Files:
+1. .env file with:
+   OPENAI_API_KEY=sk-proj-...
+
+2. Python packages (requirements_agents.txt):
+   - openai>=1.0.0
+   - python-dotenv>=1.0.0
+   - chromadb>=0.4.22
+   - sentence-transformers>=2.2.2
+   - streamlit>=1.28.0
+
+Setup Steps:
+1. Install dependencies: pip install -r requirements_agents.txt
+2. Create .env file with OPENAI_API_KEY
+3. Generate CVE data: python generate_sample_cves.py
+4. Create embeddings: python create_embeddings.py
+5. Run Streamlit: streamlit run streamlit_app.py
+
+================================================================================
+DATA FLOW DETAILS
+================================================================================
+
+1. INITIALIZATION (On Streamlit Start)
+   ───────────────────────────────────────────────────────────────────────────
+   - Load embedding model (Sentence Transformers)
+   - Connect to ChromaDB (load vector database)
+   - Initialize OpenAI client (for LLM features)
+   - Initialize all three agents
+   - Initialize session state variables
+
+2. USER QUERY PROCESSING
+   ───────────────────────────────────────────────────────────────────────────
+   Step 1: Intent Detection
+   - Analyze user message
+   - Detect intent: cve_retrieval, risk_assessment, or remediation
+   - Use LLM if available, else keyword matching
+
+   Step 2: Planner Agent
+   - Extract technology keywords from query
+   - Extract CVE ID if mentioned
+   - Check if query is vague (remediation without CVE ID)
+   - Check if stored CVEs match queried technology
+   - Plan which agents to run:
+     * If specific CVE ID → Direct search
+     * If vague query → Ask clarification
+     * If technology mismatch → Run Agent 1 first
+     * If CVEs match → Use stored CVEs
+
+   Step 3: Agent Execution
+   - Run agents in planned order
+   - Store results in session state
+   - Display results in chat
+
+3. AGENT 1 EXECUTION
+   ───────────────────────────────────────────────────────────────────────────
+   - Extract tech stack from query (LLM or keyword parsing)
+   - Extract technology keywords
+   - Create embedding for query
+   - Search vector database (top K results)
+   - Filter results to match specific technologies
+   - Return CVEs with similarity scores
+   - Store in session_state.last_cves
+
+4. AGENT 2 EXECUTION
+   ───────────────────────────────────────────────────────────────────────────
+   - Load CVE list from session state or Agent 1
+   - Load full CVE data from JSON file
+   - Calculate risk score for each CVE
+   - Sort by risk score (descending)
+   - Assign priority levels (CRITICAL, HIGH, MEDIUM, LOW)
+   - Return prioritized list
+   - Store in session_state.last_prioritized
+
+5. AGENT 3 EXECUTION
+   ───────────────────────────────────────────────────────────────────────────
+   - Take top CVE from prioritized list or specific CVE
+   - Prepare CVE context (ID, description, severity, tech, solution)
+   - Generate remediation steps using LLM
+   - Parse steps into numbered list
+   - Return remediation guide
+
+================================================================================
+ADVANCED FEATURES
+================================================================================
+
+1. STRICT TECHNOLOGY FILTERING
+   - Agent 1 filters results to only include CVEs that explicitly mention
+     the queried technology
+   - Prevents irrelevant CVEs from appearing
+   - Example: Query "Airflow" won't return "Kubernetes" CVEs
+
+2. SESSION STATE MANAGEMENT
+   - Maintains context across conversational turns
+   - Stores last CVEs found
+   - Stores last prioritized list
+   - Enables follow-up questions
+
+3. TECHNOLOGY MATCHING LOGIC
+   - Checks if stored CVEs match new query's technology
+   - Prevents unnecessary re-searching
+   - Handles technology variations (Node.js vs Nodejs)
+
+4. VAGUE QUERY HANDLING
+   - Detects queries like "fix for Python CVE"
+   - Checks if prioritized CVEs match technology
+   - Asks for specific CVE ID or suggests workflow
+   - Provides helpful clarification messages
+
+5. CVE ID PATTERN MATCHING
+   - Regex pattern: CVE-\d{4}-\d+
+   - Extracts CVE IDs from queries
+   - Case-insensitive
+   - Direct database lookup
+
+6. FALLBACK MODES
+   - If LLM unavailable, agents use keyword matching
+   - Template-based remediation if LLM fails
+   - Basic mode still functional
+
+================================================================================
+KNOWLEDGE BASE
+================================================================================
+
+CVE Data Structure:
+Each CVE contains:
+- cve_id: Unique identifier (CVE-YYYY-NNNNN)
+- description: Vulnerability description
+- cvss_v3_score: CVSS v3 score (0-10)
+- cvss_v2_score: CVSS v2 score (0-10)
+- severity: CRITICAL, HIGH, MEDIUM, or LOW
+- technologies: List of affected technologies
+- affected_products: List of vendor/product combinations
+- solution: General remediation instructions
+- references: URLs to advisories
+- kev_flag: Boolean (in Known Exploited Vulnerabilities list)
+- epss_score: Exploitation probability (0-1)
+- vulnerability_type: Type of vulnerability
+
+Supported Technologies (30+):
+Python, Node.js, React, PostgreSQL, MongoDB, Redis, Docker, Kubernetes,
+Nginx, Apache, TensorFlow, PyTorch, Java, Spring Boot, PHP, WordPress,
+Ruby, Rails, Go, Rust, C++, JavaScript, TypeScript, Angular, Vue.js,
+Express, Django, Flask, Elasticsearch, Kafka, Zookeeper, Cassandra,
+Grafana, MySQL, Airflow
+
+Vulnerability Types:
+SQL injection, Cross-site scripting (XSS), Remote code execution (RCE),
+Path traversal, Authentication bypass, Privilege escalation,
+Denial of service (DoS), Information disclosure, CSRF, XXE injection,
+Server-side request forgery (SSRF), Command injection
+
+================================================================================
+LIMITATIONS AND FUTURE IMPROVEMENTS
+================================================================================
+
+Current Limitations:
+1. Uses synthetic CVE data (50 CVEs) instead of real-time data
+2. Limited to 2025 CVE format (synthetic)
+3. GitHub API rate limits prevented real data fetching
+4. Technology list is predefined (doesn't auto-discover new techs)
+5. LLM dependency for some features (requires API key)
+6. Single vector database (no distributed search)
+
+Potential Improvements:
+1. Real-time CVE data fetching from NVD API
+2. Web scraping for latest CVEs
+3. Auto-discovery of technologies from CVE descriptions
+4. Multi-database support for scalability
+5. Caching mechanisms for faster responses
+6. User feedback integration
+7. Export functionality for reports
+8. Email alerts for high-risk CVEs
+9. Integration with CI/CD pipelines
+10. Historical CVE tracking
+
+================================================================================
+USAGE EXAMPLES
+================================================================================
+
+Starting the Application:
+```bash
+streamlit run streamlit_app.py
+```
+
+Access the UI at: http://localhost:8501
+
+Demo Queries:
+1. "I'm using Python and experiencing a bug. Can you help find what bug it might be?"
+2. "What are the risk levels of these bugs?"
+3. "Can you provide me the fix for this bug?"
+4. "fix for CVE-2025-0001"
+5. "find Kafka CVEs"
+6. "assess risks for Node.js"
+
+Expected Behavior:
+- First query finds CVEs
+- Second query assesses risks (uses stored CVEs)
+- Third query provides fixes (uses prioritized CVEs)
+- CVE ID queries search directly
+- Technology queries trigger Agent 1
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+Common Issues:
+
+1. "No CVEs found"
+   - Check if technology is in supported list
+   - Try more generic terms (Python instead of Python 3.9)
+   - Verify embeddings were created (run create_embeddings.py)
+
+2. "Agents not initialized"
+   - Check .env file has OPENAI_API_KEY
+   - Verify ChromaDB exists (chroma_db/ directory)
+   - Check all dependencies installed
+
+3. "Vector database empty"
+   - Run: python create_embeddings.py
+   - Verify data/cves_2025.json exists
+
+4. "LLM features not working"
+   - Check OPENAI_API_KEY in .env
+   - Verify API key is valid
+   - Check internet connection
+
+5. "Technology not recognized"
+   - Add technology to extract_technology() function
+   - Use exact spelling (case-insensitive)
+   - Check DEMO_INPUTS.md for supported techs
+
+================================================================================
+FILE DEPENDENCIES
+================================================================================
+
+streamlit_app.py depends on:
+- agent1_cve_retrieval.py (CVE retrieval)
+- agent2_risk_assessment.py (Risk assessment)
+- agent3_remediation.py (Remediation)
+- .env (API keys)
+- chroma_db/ (Vector database)
+
+agent1_cve_retrieval.py depends on:
+- chromadb (Vector database)
+- sentence-transformers (Embeddings)
+- openai (LLM features)
+- chroma_db/ (Existing database)
+
+agent2_risk_assessment.py depends on:
+- data/cves_2025.json (Full CVE data)
+- openai (Optional LLM features)
+
+agent3_remediation.py depends on:
+- openai (Remediation generation)
+
+create_embeddings.py depends on:
+- data/cves_2025.json (CVE data)
+- chromadb (Database)
+- sentence-transformers (Embeddings)
+
+generate_sample_cves.py depends on:
+- No external files (generates data/cves_2025.json)
+
+================================================================================
+PROJECT STATUS
+================================================================================
+
+Current Version: Fully Functional POC (Proof of Concept)
+
+Completed Features:
+✅ Three-agent architecture
+✅ Vector-based CVE search
+✅ Risk prioritization
+✅ Remediation generation
+✅ Conversational UI
+✅ Intent detection
+✅ Planner agent
+✅ Technology extraction
+✅ Vague query detection
+✅ CVE ID search
+✅ Session state management
+✅ 50 CVE records in database
+
+Working Components:
+- All three agents functional
+- Streamlit UI operational
+- Vector search working
+- LLM integration working
+- Risk scoring accurate
+- Remediation generation working
+
+Ready for:
+- Demo presentations
+- Testing with users
+- Integration with real CVE data sources
+- Extension with additional features
+
+================================================================================
+END OF DOCUMENTATION
+================================================================================
+
+This documentation was generated by scanning all project files and understanding
+the complete system architecture, data flow, and components.
+
+For questions or issues, refer to the individual README files or the code comments
+in each module.
+
+Last Updated: Based on current project state
