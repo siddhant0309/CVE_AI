@@ -1,0 +1,13 @@
+# Environment variables
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Airflow logs
+logs/
+
+# Airflow config (may contain sensitive data)
+config/airflow.cfg
