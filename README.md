@@ -170,5 +170,80 @@ cd frontend
 npm install
 cd ..
 ```
+## Project Structure
+```text
+FULL-FINAL-CVE/
+├── Agents/                          # Specialized AI agents
+│   ├── __init__.py
+│   ├── Planner.py                   # Main orchestrator agent
+│   ├── image_reading_agent.py       # Tech stack detection from images
+│   ├── cve_search_agent.py          # CVE search functionality
+│   ├── risk_assessment_agent.py     # Risk calculation and assessment
+│   ├── risk_mitigation_agent.py     # Mitigation plan generation
+│   └── report_generation_agent.py   # PDF report generation
+│
+├── RAG_PIPELINE/                    # Retrieval-Augmented Generation
+│   ├── Rag_Pipeline.py              # Main RAG orchestration
+│   ├── Rag_generation.py            # LLM answer generation
+│   ├── vector_search.py             # Vector similarity search
+│   ├── generate_embeddings.py       # Embedding generation utilities
+│   └── verify_embeddings.py         # Embedding verification
+│
+├── patchpath/                       # Configuration and utilities
+│   ├── config/
+│   │   ├── __init__.py
+│   │   └── snowflake_config.py      # Snowflake connection config
+│   └── agents/                      # Legacy agent code (if any)
+│
+├── frontend/                        # React.js frontend
+│   ├── public/
+│   │   └── index.html
+│   ├── src/
+│   │   ├── App.js                   # Main React component
+│   │   ├── App.css                  # Main styles
+│   │   ├── index.js                 # React entry point
+│   │   └── components/
+│   │       ├── ChatInterface.js     # Chat UI component
+│   │       ├── AgentAnimation.js    # Loading animation
+│   │       ├── Header.js            # Header component
+│   │       └── Sidebar.js           # Sidebar component
+│   ├── package.json                 # React dependencies
+│   └── .gitignore
+│
+├── Config_files/                    # Configuration files
+│   └── __init__.py
+│
+├── Test_Scripts/                    # Test utilities
+│   ├── test_vector_search.py
+│   └── test_Vuln_data.py
+│
+├── api_server.py                    # Flask backend API server
+├── main.py                          # Alternative entry point
+├── requirements.txt                 # Python dependencies
+├── .gitignore                       # Git ignore rules
+├── QUICK_START.md                   # Quick start guide
+├── README_FRONTEND.md               # Frontend documentation
+├── Patch-path-logo.png              # Project logo
+└── .env                             # Environment variables (not in git)
+```
 
+## Technologies Used
+### Backend
+### Backend Tech Stack
+
+<p align="left">
+  <img height="36" src="https://cdn.simpleicons.org/apacheairflow" />
+  <img height="36" src="https://cdn.simpleicons.org/snowflake" />
+  <img height="36" src="https://cdn.simpleicons.org/amazons3" />
+  <img height="36" src="https://cdn.simpleicons.org/apachespark" />
+  <img height="36" src="https://cdn.simpleicons.org/openai" />
+</p>
+
+
+### Frontend
+
+- React 18
+- React Markdown + remark-gfm
+- Axios (optional; can use fetch)
+- CSS3 (glassmorphism + gradients)
 
