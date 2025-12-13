@@ -1,5 +1,7 @@
 Patch Path - AI-Powered Cybersecurity Vulnerability Management System
-📋 Table of Contents
+
+Table of Contents
+
 Overview
 Features
 Architecture
