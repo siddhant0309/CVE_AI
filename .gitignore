@@ -11,3 +11,108 @@ logs/
 
 # Airflow config (may contain sensitive data)
 config/airflow.cfg
+
+# Environment variables (already have .env, but add variations)
+.env.local
+.env.*.local
+*.env
+ 
+# Python (already covered, but ensure these are there)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+*.pyc
+*.pyo
+*.pyd
+ 
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+venv.bak/
+ 
+# IDE (already covered)
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.vscode/
+*.code-workspace
+ 
+# OS (already covered)
+.DS_Store
+Thumbs.db
+desktop.ini
+ 
+# Generated PDF reports (temporary files)
+*.pdf
+/tmp/
+/temp/
+ 
+# Log files
+*.log
+logs/
+*.log.*
+ 
+# Database files (if any local databases)
+*.db
+*.sqlite
+*.sqlite3
+ 
+# Snowflake credentials/config (if any local config files)
+*_config_local.py
+*_credentials.py
+snowflake_credentials.json
+ 
+# Node modules (should be in frontend/.gitignore, but add here too)
+node_modules/
+frontend/node_modules/
+ 
+# React build files
+frontend/build/
+frontend/.pnp
+frontend/.pnp.js
+ 
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+ 
+# Jupyter Notebooks (if any)
+.ipynb_checkpoints/
+*.ipynb
+ 
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.cache
+ 
+# API keys or secrets (extra safety)
+*secret*
+*key*
+*password*
+*credential*
+config_local.py
+secrets.json
