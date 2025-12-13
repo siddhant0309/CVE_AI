@@ -15,7 +15,6 @@ Patch Path is an AI-powered cybersecurity vulnerability management system that h
 - [Project Structure](#project-structure)
 - [System Architecture](#System-Architecture)
 - [Technologies Used](#technologies-used)
-- [Team](#team)
 
 ---
 
@@ -224,6 +223,10 @@ FULL-FINAL-CVE/
 ├── Patch-path-logo.png              # Project logo
 └── .env                             # Environment variables (not in git)
 ```
+
+## System Architecture
+<img width="2430" height="770" alt="image" src="https://github.com/user-attachments/assets/66c8cdda-6b3b-4f88-ad8f-0bd07be7d662" />
+
 
 ## Technologies Used
 ### Backend
