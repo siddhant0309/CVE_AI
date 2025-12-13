@@ -229,14 +229,18 @@ FULL-FINAL-CVE/
 
 ## Technologies Used
 ### Backend
-### Backend Tech Stack
+
+## Backend Tech Stack
 
 <p align="left">
-  <img height="36" src="https://cdn.simpleicons.org/apacheairflow" />
-  <img height="36" src="https://cdn.simpleicons.org/snowflake" />
-  <img height="36" src="https://cdn.simpleicons.org/amazons3" />
-  <img height="36" src="https://cdn.simpleicons.org/apachespark" />
-  <img height="36" src="https://cdn.simpleicons.org/openai" />
+  <img alt="Apache Airflow" src="https://img.shields.io/badge/Apache%20Airflow-017CEE?style=for-the-badge&logo=apacheairflow&logoColor=white" />
+  <img alt="Snowflake" src="https://img.shields.io/badge/Snowflake-29B5E8?style=for-the-badge&logo=snowflake&logoColor=white" />
+  <img alt="Snowflake Cortex" src="https://img.shields.io/badge/Snowflake%20Cortex-29B5E8?style=for-the-badge&logo=snowflake&logoColor=white" />
+  <img alt="Amazon S3" src="https://img.shields.io/badge/Amazon%20S3-569A31?style=for-the-badge&logo=amazons3&logoColor=white" />
+  <img alt="Apache Parquet" src="https://img.shields.io/badge/Apache%20Parquet-50A2D4?style=for-the-badge&logo=apacheparquet&logoColor=white" />
+  <img alt="SQL" src="https://img.shields.io/badge/SQL-336791?style=for-the-badge&logo=postgresql&logoColor=white" />
+  <img alt="LangChain" src="https://img.shields.io/badge/LangChain-ffffff?style=for-the-badge&logo=langchain&logoColor=0FA958" />
+  <img alt="OpenAI" src="https://img.shields.io/badge/OpenAI-93f6ef?style=for-the-badge&logo=openai&logoColor=black" />
 </p>
 
 
