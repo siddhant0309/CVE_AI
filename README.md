@@ -144,6 +144,14 @@ LLM Generation (context-aware answer)
 Formatted Response
 ```
 
+## Installation
+### Prerequisites
+
+- Python: 3.8+
+- Node.js: 16+
+- npm: comes with Node.js
+- Snowflake Account: for CVE database access + vector search
+- OpenAI API Key: for LLM/vision functionality
 
 
 
