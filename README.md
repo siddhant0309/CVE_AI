@@ -12,11 +12,9 @@ Patch Path is an AI-powered cybersecurity vulnerability management system that h
 - [Architecture](#architecture)
 - [Installation](#installation)
 - [Configuration](#configuration)
-- [Usage](#usage)
-- [API Endpoints](#api-endpoints)
 - [Project Structure](#project-structure)
+- [System Architecture](#System-Architecture)
 - [Technologies Used](#technologies-used)
-- [Troubleshooting](#troubleshooting)
 - [Team](#team)
 
 ---
