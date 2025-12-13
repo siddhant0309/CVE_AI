@@ -245,7 +245,6 @@ FULL-FINAL-CVE/
 
 <p align="left">
   <img alt="React" src="https://img.shields.io/badge/React%2018-61DAFB?style=for-the-badge&logo=react&logoColor=black" />
-  <img alt="React Markdown" src="https://img.shields.io/badge/React%20Markdown-000000?style=for-the-badge&logo=markdown&logoColor=white" />
-  <img alt="CSS3" src="https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white" />
+  <img alt="Flask" src="https://img.shields.io/badge/Flask-000000?style=for-the-badge&logo=flask&logoColor=white" />
 </p>
 
