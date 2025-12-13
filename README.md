@@ -104,7 +104,22 @@ Context Update (Memory)
 Formatted Response
         ↓
 Frontend Display
+Data Flow
+1) Image Upload Flow
 
+Image → Planner → Tech Stack Detection → Extract Technologies → Store in Image Context
+
+2) CVE Search Flow
+
+Query → Planner → CVE Search → RAG Pipeline → Vector Search → Snowflake DB → Results
+
+3) Risk Assessment Flow
+
+Query + CVEs from Context → Planner → Risk Assessment → Calculate Risk Scores → Generate Table
+
+4) Mitigation Flow
+
+Query + CVE IDs → Planner → Risk Mitigation → Generate Steps → Trigger Report Generation
 
 
 
