@@ -109,19 +109,41 @@ Frontend Display
 
 ### Image Upload Flow
 
-Image → Planner → Tech Stack Detection → Extract Technologies → Store in Image Context
+- Image → Planner → Tech Stack Detection → Extract Technologies → Store in Image Context
 
 ### CVE Search Flow
 
-Query → Planner → CVE Search → RAG Pipeline → Vector Search → Snowflake DB → Results
+- Query → Planner → CVE Search → RAG Pipeline → Vector Search → Snowflake DB → Results
 
 ### Risk Assessment Flow
 
-Query + CVEs from Context → Planner → Risk Assessment → Calculate Risk Scores → Generate Table
+- Query + CVEs from Context → Planner → Risk Assessment → Calculate Risk Scores → Generate Table
 
 ### Mitigation Flow
 
 - Query + CVE IDs → Planner → Risk Mitigation → Generate Steps → Trigger Report Generation
+
+##RAG Pipeline Search Path
+```text
+User Query
+  ↓
+Query Intent Parsing (extract technologies, semantic query)
+  ↓
+Keyword Matching (LIKE queries on TITLE, DESCRIPTION, COMBINED_TEXT)
+  ↓
+Vector Embedding (Snowflake EMBED_TEXT_1024)
+  ↓
+Cosine Similarity Search (VECTOR_COSINE_SIMILARITY)
+  ↓
+Filter by Similarity Threshold (≥ 0.55)
+  ↓
+Rank by Similarity Score (Top 15)
+  ↓
+LLM Generation (context-aware answer)
+  ↓
+Formatted Response
+```
+
 
 
 
