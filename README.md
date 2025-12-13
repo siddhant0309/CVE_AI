@@ -241,11 +241,11 @@ FULL-FINAL-CVE/
   <img alt="OpenAI" src="https://img.shields.io/badge/OpenAI-93f6ef?style=for-the-badge&logo=openai&logoColor=black" />
 </p>
 
-
 ### Frontend
 
-- React 18
-- React Markdown + remark-gfm
-- Axios (optional; can use fetch)
-- CSS3 (glassmorphism + gradients)
+<p align="left">
+  <img alt="React" src="https://img.shields.io/badge/React%2018-61DAFB?style=for-the-badge&logo=react&logoColor=black" />
+  <img alt="React Markdown" src="https://img.shields.io/badge/React%20Markdown-000000?style=for-the-badge&logo=markdown&logoColor=white" />
+  <img alt="CSS3" src="https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white" />
+</p>
 
