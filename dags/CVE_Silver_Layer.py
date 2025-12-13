@@ -5,7 +5,9 @@ from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.exceptions import AirflowSkipException
 from datetime import datetime, timedelta
-import os, json, re
+import os
+import json
+import re
 from io import BytesIO
 
 import pandas as pd
@@ -13,29 +15,36 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 # ---------------------- CONFIG ----------------------
-BUCKET        = os.environ.get("S3_BUCKET", "medallion-data-cve")
-RAW_PREFIX    = "Raw_Container/cve_parquet"                 # year=YYYY/ingestion_date=YYYY-MM-DD/*.parquet
+BUCKET = os.environ.get("S3_BUCKET", "medallion-data-cve")
+# year=YYYY/ingestion_date=YYYY-MM-DD/*.parquet
+RAW_PREFIX = "Raw_Container/cve_parquet"
 SILVER_PREFIX = "Silver_Layer/cve_silver"
-SILVER_FILE   = f"{SILVER_PREFIX}/cve_silver.parquet"       # single Silver file
-PROCESSED     = f"{SILVER_PREFIX}/_processed"               # processed markers
-AWS_CONN_ID   = "AWS_DEFAULT"
+SILVER_FILE = f"{SILVER_PREFIX}/cve_silver.parquet"       # single Silver file
+PROCESSED = f"{SILVER_PREFIX}/_processed"               # processed markers
+AWS_CONN_ID = "AWS_DEFAULT"
 
 # ---------------------- S3 HELPERS ----------------------
+
+
 def _list_common_prefixes(s3, prefix: str):
-    c = s3.get_conn(); p = c.get_paginator("list_objects_v2")
+    c = s3.get_conn()
+    p = c.get_paginator("list_objects_v2")
     out = []
-    for page in p.paginate(Bucket=BUCKET, Prefix=prefix.rstrip('/')+'/', Delimiter='/'):
+    for page in p.paginate(Bucket=BUCKET, Prefix=prefix.rstrip('/') + '/', Delimiter='/'):
         for cp in page.get("CommonPrefixes", []):
             out.append(cp["Prefix"])
     return out
 
+
 def _list_objects(s3, prefix: str):
-    c = s3.get_conn(); p = c.get_paginator("list_objects_v2")
+    c = s3.get_conn()
+    p = c.get_paginator("list_objects_v2")
     out = []
-    for page in p.paginate(Bucket=BUCKET, Prefix=prefix.rstrip('/')+'/'):
+    for page in p.paginate(Bucket=BUCKET, Prefix=prefix.rstrip('/') + '/'):
         for obj in page.get("Contents", []):
             out.append(obj["Key"])
     return out
+
 
 def _read_parquet_to_df(s3, key: str) -> pd.DataFrame:
     body = s3.get_key(key, BUCKET).get()["Body"].read()
@@ -44,9 +53,10 @@ def _read_parquet_to_df(s3, key: str) -> pd.DataFrame:
     df.columns = [str(c).strip().lower() for c in df.columns]
     return df
 
+
 def _write_df_to_parquet(s3, key: str, df: pd.DataFrame):
     """
-    IMPORTANT CHANGE:
+    IMPORTANT:
     - Only coerce _ingest_ts to timestamp.
     - LEAVE date_updated as STRING so Snowflake COPY can parse it reliably.
     """
@@ -55,17 +65,26 @@ def _write_df_to_parquet(s3, key: str, df: pd.DataFrame):
             pd.to_datetime(df["_ingest_ts"], errors="coerce", utc=True)
               .dt.tz_localize(None)
         )
-    # Do NOT touch df["date_updated"] (keep as ISO string / None)
 
     buf = BytesIO()
-    pq.write_table(pa.Table.from_pandas(df, preserve_index=False), buf, compression="snappy")
+    pq.write_table(pa.Table.from_pandas(
+        df, preserve_index=False), buf, compression="snappy")
     buf.seek(0)
-    s3.get_conn().put_object(Bucket=BUCKET, Key=key, Body=buf.getvalue(), ContentType="application/x-parquet")
+    s3.get_conn().put_object(
+        Bucket=BUCKET,
+        Key=key,
+        Body=buf.getvalue(),
+        ContentType="application/x-parquet",
+    )
+
 
 def _put_marker(s3, key: str):
-    s3.load_string(string_data="OK", key=key.rstrip('/'), bucket_name=BUCKET, replace=True)
+    s3.load_string(string_data="OK", key=key.rstrip(
+        '/'), bucket_name=BUCKET, replace=True)
 
 # ---------------------- JSON / CVE HELPERS ----------------------
+
+
 def _json_loads_safely(raw_text: str):
     """Handle double-encoded JSON gracefully."""
     obj = json.loads(raw_text)
@@ -73,34 +92,47 @@ def _json_loads_safely(raw_text: str):
         obj = json.loads(obj)
     return obj
 
+
 def _strip_html(text):
-    if not text: return None
+    if not text:
+        return None
     return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", str(text))).strip()
 
+
 def _pick_first_english(items, value_key="value"):
-    if not isinstance(items, list) or not items: return None
+    if not isinstance(items, list) or not items:
+        return None
     for it in items:
         if (it or {}).get("lang") == "en":
             return (it or {}).get(value_key)
     return (items[0] or {}).get(value_key)
+
 
 def _gather_all_containers(parsed):
     """Return a flat list of all container dicts (cna, adp, etc.)."""
     cont = parsed.get("containers") or {}
     out = []
     for v in cont.values():
-        if isinstance(v, dict): out.append(v)
-        elif isinstance(v, list): out.extend([x for x in v if isinstance(x, dict)])
+        if isinstance(v, dict):
+            out.append(v)
+        elif isinstance(v, list):
+            out.extend([x for x in v if isinstance(x, dict)])
     return out
+
 
 def _best_title_desc_sol(parsed):
     title = desc = sol = None
     for c in _gather_all_containers(parsed):
-        if title is None: title = c.get("title")
-        if desc is None:  desc = _pick_first_english(c.get("descriptions", []))
-        if sol  is None:  sol  = _pick_first_english(c.get("solutions", []))
-        if title and desc and sol: break
+        if title is None:
+            title = c.get("title")
+        if desc is None:
+            desc = _pick_first_english(c.get("descriptions", []))
+        if sol is None:
+            sol = _pick_first_english(c.get("solutions", []))
+        if title and desc and sol:
+            break
     return title, (_strip_html(desc) if desc else "Unknown"), (_strip_html(sol) if sol else "Unknown")
+
 
 def _choose_cvss(parsed):
     metrics_all = []
@@ -110,47 +142,65 @@ def _choose_cvss(parsed):
     for pref in ["cvssV4_0", "cvssV3_1", "cvssV3_0", "cvssV2_0"]:
         for m in metrics_all:
             obj = (m or {}).get(pref)
-            if obj: best = obj; break
-        if best: break
-    if not best: return None, None
+            if obj:
+                best = obj
+                break
+        if best:
+            break
+    if not best:
+        return None, None
     score = best.get("baseScore")
     sev = best.get("baseSeverity")
     if score is not None and not sev:
         sev = "LOW" if score < 4 else "MEDIUM" if score < 7 else "HIGH" if score < 9 else "CRITICAL"
     return score, sev
 
+
 def _pick_reference_url(parsed):
     refs = []
     for c in _gather_all_containers(parsed):
         refs.extend(c.get("references", []) or [])
-    if not refs: return None
+    if not refs:
+        return None
+
     def rank(ref):
         tags = set((ref or {}).get("tags") or [])
-        if "vendor-advisory" in tags: return 0
-        if "patch" in tags: return 1
+        if "vendor-advisory" in tags:
+            return 0
+        if "patch" in tags:
+            return 1
         return 9
+
     for r in sorted(refs, key=rank):
-        if r.get("url"): return r["url"]
+        if r.get("url"):
+            return r["url"]
     return None
+
 
 def _latest_version_label(ve):
-    if ve.get("lessThanOrEqual"):     return f"≤ {ve['lessThanOrEqual']}"
-    if ve.get("lessThan"):            return f"< {ve['lessThan']}"
-    if ve.get("greaterThanOrEqual"):  return f"≥ {ve['greaterThanOrEqual']}"
-    if ve.get("version"):             return f"v{ve['version']}"
+    if ve.get("lessThanOrEqual"):
+        return f"≤ {ve['lessThanOrEqual']}"
+    if ve.get("lessThan"):
+        return f"< {ve['lessThan']}"
+    if ve.get("greaterThanOrEqual"):
+        return f"≥ {ve['greaterThanOrEqual']}"
+    if ve.get("version"):
+        return f"v{ve['version']}"
     return None
 
+
 def _normalize(s: str | None) -> str | None:
-    if s is None: return None
+    if s is None:
+        return None
     s = s.replace("≤", "<=").replace("–", "-")
     return re.sub(r"\s+", " ", s).strip().lower()
+
 
 def _collect_all_dateupdated(parsed) -> str | None:
     """
     Pull dateUpdated from top-level cveMetadata and ANY container.providerMetadata.
     Return the latest **ISO string** (keep as text), else None.
 
-    We intentionally avoid pandas here to prevent NaT/NULL surprises.
     ISO-8601 strings with 'Z' sort lexicographically by recency.
     """
     dates: list[str] = []
@@ -170,7 +220,34 @@ def _collect_all_dateupdated(parsed) -> str | None:
     if not dates:
         return None
 
-    return max(dates)  # latest by lexicographic order for Z-terminated ISO strings
+    # latest by lexicographic order for Z-terminated ISO strings
+    return max(dates)
+
+
+def _extract_cwes(parsed) -> str:
+    """
+    Extract all CWE IDs from containers[*].problemTypes[*].descriptions[*].
+    Returns a comma-separated string of unique CWE IDs, or 'Unknown' if none found.
+    """
+    cwe_ids = set()
+
+    for container in _gather_all_containers(parsed):
+        for pt in (container.get("problemTypes") or []):
+            for desc in (pt.get("descriptions") or []):
+                d = desc or {}
+                # CWE may be in 'cweId' or inside 'description'
+                candidate = d.get("cweId") or d.get("description")
+                if not candidate:
+                    continue
+                for match in re.findall(r"CWE-\d+", str(candidate)):
+                    cwe_ids.add(match.strip())
+
+    if not cwe_ids:
+        return "Unknown"
+
+    # Sort for deterministic order
+    return ", ".join(sorted(cwe_ids))
+
 
 # ---------------------- ROW EMISSION ----------------------
 def _rows_from_raw(raw_json_text: str, ingest_ts) -> list[dict]:
@@ -184,14 +261,15 @@ def _rows_from_raw(raw_json_text: str, ingest_ts) -> list[dict]:
     # Robust date_updated (keep as string)
     date_updated_iso = _collect_all_dateupdated(parsed)
 
-    # ---------- Optional debug ----------
+    # Debug
     if ('"dateUpdated"' in raw_json_text) and (date_updated_iso is None):
-        print(f"[DEBUG] {cve_id}: raw has dateUpdated but parser returned None")
-    # -----------------------------------
+        print(
+            f"[DEBUG] {cve_id}: raw has dateUpdated but parser returned None")
 
     title, description, solution = _best_title_desc_sol(parsed)
     cvss_score, cvss_severity = _choose_cvss(parsed)
     reference_url = _pick_reference_url(parsed)
+    cwes = _extract_cwes(parsed)
 
     # Ensure missing CVSS => 0.0
     if cvss_score in (None, "", "NaN") or (pd.isna(cvss_score) if cvss_score is not None else True):
@@ -202,14 +280,15 @@ def _rows_from_raw(raw_json_text: str, ingest_ts) -> list[dict]:
 
     for c in _gather_all_containers(parsed):
         for aff in (c.get("affected", []) or []):
-            vendor  = (aff or {}).get("vendor")
+            vendor = (aff or {}).get("vendor")
             product = (aff or {}).get("product")
             if not vendor and not product:
                 continue
             label = None
             for ve in ((aff or {}).get("versions", []) or []):
                 label = _latest_version_label(ve or {})
-                if label: break
+                if label:
+                    break
             product_val = product if not label else f"{product} ({label})"
             any_found = True
             rows.append({
@@ -225,6 +304,7 @@ def _rows_from_raw(raw_json_text: str, ingest_ts) -> list[dict]:
                 "cvss_severity": cvss_severity or "Unknown",
                 "reference_url": reference_url or "Unknown",
                 "date_updated": date_updated_iso,   # keep as string
+                "cwes": cwes or "Unknown",
                 "_ingest_ts": now_utc,              # real timestamp
             })
 
@@ -242,15 +322,20 @@ def _rows_from_raw(raw_json_text: str, ingest_ts) -> list[dict]:
             "cvss_severity": cvss_severity or "Unknown",
             "reference_url": reference_url or "Unknown",
             "date_updated": date_updated_iso,       # keep as string
+            "cwes": cwes or "Unknown",
             "_ingest_ts": now_utc,
         })
     return rows
 
 # ---------------------- FILLER STANDARDIZATION ----------------------
+
+
 def _fill_unknown_strings(df: pd.DataFrame) -> pd.DataFrame:
-    if df.empty: return df
+    if df.empty:
+        return df
     obj_cols = df.select_dtypes(include=["object"]).columns
-    if not len(obj_cols): return df
+    if not len(obj_cols):
+        return df
 
     blank_re = r"^\s*$"
     filler_full_re = (
@@ -270,22 +355,31 @@ def _fill_unknown_strings(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 # ---------------------- CORE PROCESSING ----------------------
+
+
 def _process_partition(s3, partition_prefix: str) -> bool:
-    raw_files = [k for k in _list_objects(s3, partition_prefix) if k.lower().endswith((".parquet", ".parq"))]
-    if not raw_files: return False
+    raw_files = [k for k in _list_objects(
+        s3, partition_prefix) if k.lower().endswith((".parquet", ".parq"))]
+    if not raw_files:
+        return False
 
     batch_rows = []
     for key in raw_files:
         df = _read_parquet_to_df(s3, key)
-        raw_col = "raw_data" if "raw_data" in df.columns else ("raw" if "raw" in df.columns else None)
-        ts_col  = "timestamp" if "timestamp" in df.columns else ("ingest_ts" if "ingest_ts" in df.columns else None)
-        if not raw_col: continue
+        raw_col = "raw_data" if "raw_data" in df.columns else (
+            "raw" if "raw" in df.columns else None)
+        ts_col = "timestamp" if "timestamp" in df.columns else (
+            "ingest_ts" if "ingest_ts" in df.columns else None)
+        if not raw_col:
+            continue
 
         for _, r in df.iterrows():
-            ingest_ts = pd.to_datetime(r.get(ts_col), errors="coerce") if ts_col else pd.NaT
+            ingest_ts = pd.to_datetime(
+                r.get(ts_col), errors="coerce") if ts_col else pd.NaT
             batch_rows.extend(_rows_from_raw(r[raw_col], ingest_ts))
 
-    if not batch_rows: return False
+    if not batch_rows:
+        return False
 
     df_new = _fill_unknown_strings(pd.DataFrame(batch_rows))
 
@@ -299,14 +393,21 @@ def _process_partition(s3, partition_prefix: str) -> bool:
 
     if "_ingest_ts" not in df_all.columns:
         df_all["_ingest_ts"] = pd.NaT
-    df_all["_ingest_ts"] = pd.to_datetime(df_all["_ingest_ts"], errors="coerce")
+    df_all["_ingest_ts"] = pd.to_datetime(
+        df_all["_ingest_ts"], errors="coerce")
 
-    df_all = df_all.sort_values("_ingest_ts").drop_duplicates(subset=key_cols, keep="last").reset_index(drop=True)
+    df_all = (
+        df_all
+        .sort_values("_ingest_ts")
+        .drop_duplicates(subset=key_cols, keep="last")
+        .reset_index(drop=True)
+    )
     df_all = _fill_unknown_strings(df_all)
 
     _write_df_to_parquet(s3, SILVER_FILE, df_all)
     _put_marker(s3, f"{PROCESSED}/{partition_prefix.strip('/')}/_DONE")
     return True
+
 
 def transform_raw_to_silver_incremental():
     from airflow.providers.amazon.aws.hooks.s3 import S3Hook
@@ -315,7 +416,8 @@ def transform_raw_to_silver_incremental():
 
     for yp in _list_common_prefixes(s3, RAW_PREFIX):
         keys = _list_objects(s3, yp)
-        idate_prefixes = sorted({"/".join(k.split("/")[:4]) + "/" for k in keys if "ingestion_date=" in k})
+        idate_prefixes = sorted(
+            {"/".join(k.split("/")[:4]) + "/" for k in keys if "ingestion_date=" in k})
         for ip in idate_prefixes:
             marker = f"{PROCESSED}/{ip.strip('/')}/_DONE"
             if s3.check_for_key(marker, bucket_name=BUCKET):
@@ -326,10 +428,11 @@ def transform_raw_to_silver_incremental():
     if not processed_any:
         raise AirflowSkipException("No new parquet partitions found.")
 
+
 # ---------------------- DAG ----------------------
 with DAG(
     dag_id="cve_raw_to_silver_flatten_upsert",
-    description="Unified Silver: one row per CVE × (vendor, product); incremental upsert; Unknown standardization; robust dateUpdated",
+    description="Unified Silver: one row per CVE × (vendor, product); incremental upsert; Unknown standardization; robust dateUpdated; CWE extraction",
     start_date=datetime(2025, 10, 15),
     schedule="@once",
     catchup=False,
