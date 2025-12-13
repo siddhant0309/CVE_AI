@@ -154,4 +154,21 @@ Formatted Response
 - OpenAI API Key: for LLM/vision functionality
 
 
+## Step 1 — Clone the Repository
+```text
+git clone <repository-url>
+cd FULL-FINAL-CVE
+```
+## Step 2 — Install Python Dependencies
+```text
+pip install -r requirements.txt
+```
+
+## Step 3 — Install React Dependencies
+```text
+cd frontend
+npm install
+cd ..
+```
+
 
