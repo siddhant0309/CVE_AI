@@ -105,7 +105,9 @@ Formatted Response
         ↓
 Frontend Display
 
-Data Flow
+
+
+ ## Data Flow
 
 Image Upload Flow
 
