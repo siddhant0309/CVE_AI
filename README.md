@@ -105,7 +105,25 @@ Formatted Response
         ↓
 Frontend Display
 ```
+Data Flow
 
+Image Upload Flow
+
+Image → Planner → Tech Stack Detection → Extract Technologies → Store in Image Context
+
+CVE Search Flow
+
+Query → Planner → CVE Search → RAG Pipeline → Vector Search → Snowflake DB → Results
+
+Risk Assessment Flow
+
+Query + CVEs from Context → Planner → Risk Assessment → Calculate Risk Scores → Generate Table
+
+Mitigation Flow
+
+Query + CVE IDs → Planner → Risk Mitigation → Generate Steps → Trigger Report Generation
+
+RAG Pipeline (Search Path)
 
 
 
